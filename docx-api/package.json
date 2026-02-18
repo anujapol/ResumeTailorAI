@@ -1,0 +1,17 @@
+{
+  "name": "jsontodocx",
+  "version": "1.0.0",
+  "description": "Docx generation API for n8n resume builder workflow",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "docx": "^8.5.0",
+    "express": "^4.18.2"
+  }
+}
