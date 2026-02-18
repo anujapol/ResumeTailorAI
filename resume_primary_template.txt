@@ -1,0 +1,46 @@
+# ResumeTailorAI — Primary Resume Template
+# Store this content in your n8n Data Table under key: resume_primary
+# Replace everything below with your actual resume content in plain text
+# ─────────────────────────────────────────────────────────────────
+
+<YOUR_FULL_NAME>
+<YOUR_CITY>, <YOUR_STATE> | <YOUR_PHONE> | <YOUR_EMAIL> | <YOUR_LINKEDIN_URL>
+Work Authorization: <YOUR_WORK_AUTH_STATUS>
+
+<YOUR_TARGET_TITLE>
+
+<YOUR_PROFESSIONAL_SUMMARY — 2-3 sentences covering your scope, key expertise, and headline impact metric>
+
+Core Competencies
+<COMPETENCY_1> | <COMPETENCY_2> | <COMPETENCY_3> | <COMPETENCY_4> | <COMPETENCY_5> | <COMPETENCY_6>
+
+Experiences
+
+<COMPANY_NAME>, <CITY>, <DEPARTMENT>                    <START_DATE> - <END_DATE>
+<TEAM_OR_PRODUCT_NAME>, <YOUR_TITLE>                    <ROLE_START_DATE> - <ROLE_END_DATE>
+<One-line italic description of your role scope>
+• <BULLET 1 — most impactful, metric-driven>
+• <BULLET 2>
+• <BULLET 3>
+• <BULLET 4>
+
+<COMPANY_NAME_2>, <CITY>, <DEPARTMENT>                  <START_DATE> - <END_DATE>
+<TEAM_OR_PRODUCT_NAME>, <YOUR_TITLE>                    <ROLE_START_DATE> - <ROLE_END_DATE>
+<One-line italic description of your role scope>
+• <BULLET 1>
+• <BULLET 2>
+• <BULLET 3>
+
+Education
+
+<DEGREE>, <INSTITUTION_NAME> — <CITY>, <COUNTRY>
+<DEGREE_2>, <INSTITUTION_NAME_2> — <CITY>, <COUNTRY>
+
+─────────────────────────────────────────────────────────────────
+FORMATTING TIPS FOR BEST RESULTS:
+- Keep bullets under 40 words each
+- Include metrics wherever possible (%, $, x, time saved)
+- Use present tense for current role, past tense for prior roles
+- Do not include photos, tables, or special characters
+- Plain text only — no markdown formatting
+─────────────────────────────────────────────────────────────────

@@ -1,0 +1,328 @@
+{
+  "name": "ResumeTailorAI — AI Resume Builder",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "ResumeTailorAI — Submit a Job",
+        "formDescription": "Paste the full job description and details below. The agent will generate a tailored Word resume, save it to Drive, and log it in your tracker.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Company Name",
+              "placeholder": "e.g. Stripe",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Team Name",
+              "placeholder": "e.g. Commerce Platform",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Posting URL",
+              "fieldType": "text",
+              "placeholder": "https://careers.example.com/job/123",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Target Role Title",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "Lead Product Manager" },
+                  { "option": "Principal Product Manager" },
+                  { "option": "Staff PM" },
+                  { "option": "Director PM" },
+                  { "option": "Technical Program Manager (TPM)" }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Full Job Description",
+              "fieldType": "textarea",
+              "placeholder": "Paste the complete job description here...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Claude Model",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  { "option": "claude-sonnet-4-6" },
+                  { "option": "claude-opus-4-6" },
+                  { "option": "claude-haiku-4-5-20251001" }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-form-trigger",
+      "name": "Job Submission Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "company",
+              "value": "={{ $json['Company Name'] }}",
+              "type": "string"
+            },
+            {
+              "name": "team_name",
+              "value": "={{ $json['Team Name'] }}",
+              "type": "string"
+            },
+            {
+              "name": "jd_url",
+              "value": "={{ $json['Job Posting URL'] }}",
+              "type": "string"
+            },
+            {
+              "name": "target_level",
+              "value": "={{ $json['Target Role Title'] }}",
+              "type": "string"
+            },
+            {
+              "name": "job_description",
+              "value": "={{ $json['Full Job Description'] }}",
+              "type": "string"
+            },
+            {
+              "name": "date_applied",
+              "value": "={{ $now.toFormat('yyyy-MM-dd') }}",
+              "type": "string"
+            },
+            {
+              "name": "claude_model",
+              "value": "={{ $json['Claude Model'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-set-fields",
+      "name": "Prepare Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://YOUR_N8N_SUBDOMAIN.app.n8n.cloud/api/v1/data-tables/YOUR_DATA_TABLE_NANOID/rows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "node-read-config",
+      "name": "Read Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [600, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "n8n API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.first().json.data || $input.all().map(i => i.json);\nconst config = {};\nrows.forEach(row => {\n  if (row.key && row.value) {\n    config[row.key] = row.value;\n  }\n});\nconst preparedFields = $('Prepare Fields').first().json;\nreturn [{\n  json: {\n    ...preparedFields,\n    config\n  }\n}];"
+      },
+      "id": "node-flatten-config",
+      "name": "Flatten Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Prepare Fields').item.json.claude_model }}"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=JOB DESCRIPTION:\n{{ $('Flatten Config').item.json.job_description }}\n\nCOMPANY: {{ $('Flatten Config').item.json.company }}\nTEAM / ROLE: {{ $('Flatten Config').item.json.team_name }}\nTARGET LEVEL: {{ $('Flatten Config').item.json.target_level }}\n\nMASTER RESUME:\n{{ $('Flatten Config').item.json.config.resume_primary }}\n\nProduce the tailored resume as structured JSON following your output format exactly."
+            }
+          ]
+        },
+        "simplifyOutput": false,
+        "options": {
+          "system": "={{ $('Flatten Config').item.json.config.resume_system_prompt }}",
+          "maxTokens": 4096
+        }
+      },
+      "id": "node-claude-api",
+      "name": "Generate Resume JSON",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [960, 300],
+      "credentials": {
+        "anthropicApi": {
+          "name": "YOUR_ANTHROPIC_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_RAILWAY_APP.up.railway.app/build-resume",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.content[0].text }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "node-build-docx",
+      "name": "Build .docx File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "=YOUR_NAME - {{ $('Prepare Fields').item.json.company }} - {{ $('Prepare Fields').item.json.team_name }}.docx",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_DRIVE_FOLDER_ID"
+        },
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "node-google-drive",
+      "name": "Save to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1440, 300],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "name": "YOUR_GOOGLE_DRIVE_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "YOUR_GOOGLE_SHEET_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Job Tracker"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date of Application": "={{ $('Prepare Fields').item.json.date_applied }}",
+            "Company": "={{ $('Prepare Fields').item.json.company }}",
+            "Estimated Level": "={{ $('Prepare Fields').item.json.target_level }}",
+            "Team / Role": "={{ $('Prepare Fields').item.json.team_name }}",
+            "URL": "={{ $('Prepare Fields').item.json.jd_url }}",
+            "Application Status": "Draft",
+            "Referral Reached Out To": "",
+            "Stage of Interview": "",
+            "First Follow Up Date": "={{ $now.plus({days: 3}).toFormat('yyyy-MM-dd') }}",
+            "Second Follow Up Date": "={{ $now.plus({days: 7}).toFormat('yyyy-MM-dd') }}",
+            "Third Follow Up Date": "={{ $now.plus({days: 12}).toFormat('yyyy-MM-dd') }}",
+            "Next Step": "Review and approve resume",
+            "Next Step Date": "={{ $now.plus({days: 1}).toFormat('yyyy-MM-dd') }}",
+            "Resume Drive Link": "={{ $('Save to Google Drive').item.json.webViewLink }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-google-sheets",
+      "name": "Log to Job Tracker Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1680, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "YOUR_GOOGLE_SHEETS_CREDENTIAL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=Your tailored resume for {{ $('Prepare Fields').item.json.team_name }} at {{ $('Prepare Fields').item.json.company }} has been generated.\n\nResume saved to Google Drive: {{ $('Save to Google Drive').item.json.webViewLink }}\n\nJob logged in your tracker. Application status is set to Draft — update it to Applied once you submit.\n\nNext step: Review and approve your resume."
+      },
+      "id": "node-form-response",
+      "name": "Form Response",
+      "type": "n8n-nodes-base.formCompletion",
+      "typeVersion": 1,
+      "position": [1920, 300]
+    }
+  ],
+  "connections": {
+    "Job Submission Form": {
+      "main": [[{ "node": "Prepare Fields", "type": "main", "index": 0 }]]
+    },
+    "Prepare Fields": {
+      "main": [[{ "node": "Read Config", "type": "main", "index": 0 }]]
+    },
+    "Read Config": {
+      "main": [[{ "node": "Flatten Config", "type": "main", "index": 0 }]]
+    },
+    "Flatten Config": {
+      "main": [[{ "node": "Generate Resume JSON", "type": "main", "index": 0 }]]
+    },
+    "Generate Resume JSON": {
+      "main": [[{ "node": "Build .docx File", "type": "main", "index": 0 }]]
+    },
+    "Build .docx File": {
+      "main": [[{ "node": "Save to Google Drive", "type": "main", "index": 0 }]]
+    },
+    "Save to Google Drive": {
+      "main": [[{ "node": "Log to Job Tracker Sheet", "type": "main", "index": 0 }]]
+    },
+    "Log to Job Tracker Sheet": {
+      "main": [[{ "node": "Form Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "resumetailorai-v1"
+  }
+}
